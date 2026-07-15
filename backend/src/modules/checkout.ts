@@ -7,6 +7,10 @@
 
 import { Hono } from 'hono';
 import Stripe from 'stripe';
+import { db } from '../db/client.js';
+import { subscriptions, subscriptionPlans } from '../db/schema/index.js';
+import { eq } from 'drizzle-orm';
+import { generateId } from '../shared/utils.js';
 
 const stripeKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: '2024-04-10' }) : null;
@@ -109,8 +113,30 @@ checkoutRouter.post('/checkout', async (c) => {
       },
       success_url: successUrl || 'https://be740fcb1111d6740ba7b0a41c2d3231.ctonew.app/app?checkout=success',
       cancel_url: cancelUrl || 'https://be740fcb1111d6740ba7b0a41c2d3231.ctonew.app/pricing',
-      metadata: { plan },
+      metadata: { plan, orgId: c.req.header('x-org-id') || 'new' },
     });
+
+    // Store checkout session reference in DB (creates subscription placeholder)
+    if (c.req.header('x-org-id')) {
+      const orgId = c.req.header('x-org-id')!;
+      const existingSub = await db.select().from(subscriptions).where(eq(subscriptions.organizationId, orgId)).limit(1);
+      if (!existingSub.length) {
+        // Find the plan
+        const planRecord = await db.select().from(subscriptionPlans).where(eq(subscriptionPlans.slug, plan)).limit(1);
+        if (planRecord.length) {
+          await db.insert(subscriptions).values({
+            id: generateId(),
+            organizationId: orgId,
+            planId: planRecord[0].id,
+            stripeSubscriptionId: session.id,
+            stripeCustomerId: session.customer as string || null,
+            status: 'trialing',
+            trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            currentPeriodStart: new Date(),
+          });
+        }
+      }
+    }
 
     return c.json({
       success: true,

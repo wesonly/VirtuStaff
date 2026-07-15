@@ -92,7 +92,6 @@ orgRouter.get('/orgs/:orgId/members', async (c) => {
 });
 
 orgRouter.post('/orgs/:orgId/members', async (c) => {
-  const { orgId } = c.req.param();
   const body = await c.req.json();
   // TODO: Invite via Clerk, then create membership record
   return c.json({ data: { invited: true, email: body.email } }, 201);

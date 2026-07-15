@@ -2,15 +2,16 @@
  * VirtuStaff — Call Agent
  *
  * Handles inbound and outbound phone calls.
- * Uses voice-optimized models and Twilio integration for telephony.
+ * Uses Claude for conversation and Twilio for telephony.
  */
 
 import { BaseAgent, type AgentConfig } from './base.js';
 import type { Task } from '../../shared/types.js';
 import type { AIExecutionResult } from '../runtime.js';
+import { executeTask } from '../runtime.js';
 
 const DEFAULT_CONFIG: AgentConfig = {
-  model: 'gpt-4o',
+  model: 'claude-3-5-sonnet-20241022',
   systemPrompt: `You are a professional AI phone agent for a business. 
 Your role is to handle calls professionally, answer questions, 
 qualify leads, schedule appointments, and provide information.
@@ -27,13 +28,20 @@ export class CallAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<AIExecutionResult> {
-    this.buildSystemPrompt(task);
-    // TODO: Implement voice conversation loop with OpenAI Realtime API + Twilio
-    return {
-      success: true,
-      output: { handled: true, transcript: task.inputData },
-      summary: `Call handled for ${task.contactName || 'caller'}`,
-      durationMs: 0,
-    };
+    return executeTask(task);
+  }
+
+  async process(input: { message: string; contactName?: string; contactPhone?: string }): Promise<AIExecutionResult> {
+    return executeTask({
+      id: `call-${Date.now()}`,
+      organizationId: 'org',
+      aiEmployeeId: 'agent',
+      type: 'call',
+      status: 'pending',
+      priority: 'normal',
+      inputData: { text: input.message },
+      contactName: input.contactName,
+      contactPhone: input.contactPhone,
+    } as Task);
   }
 }

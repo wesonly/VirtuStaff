@@ -3,7 +3,6 @@
  */
 
 import { Hono } from 'hono';
-import { HTTPException } from 'hono/http-exception';
 import { db } from '../../db/client.js';
 import { crmConnections, syncLogs } from '../../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';

@@ -7,15 +7,15 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { db } from '../../db/client.js';
-import { tasks, taskLogs, aiEmployees } from '../../db/schema/index.js';
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import { tasks, taskLogs } from '../../db/schema/index.js';
+import { eq, and, desc, asc } from 'drizzle-orm';
 import { generateId } from '../../shared/utils.js';
 
 export const taskRouter = new Hono();
 
 taskRouter.get('/orgs/:orgId/tasks', async (c) => {
   const { orgId } = c.req.param();
-  const { status, employeeId, limit, cursor } = c.req.query();
+  const { status, employeeId, limit } = c.req.query();
 
   const conditions = [eq(tasks.organizationId, orgId)];
   if (status) conditions.push(eq(tasks.status, status));

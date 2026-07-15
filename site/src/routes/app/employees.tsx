@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { aiEmployees } from "~/data/dashboard";
+import { useEffect, useState } from "react";
+import { fetchEmployees, toggleEmployeeStatus } from "~/lib/api-client";
+import type { ApiResponse } from "~/lib/api-client";
+import type { AIEmployee } from "~/data/dashboard";
 
 export const Route = createFileRoute("/app/employees")({
   component: EmployeesPage,
@@ -24,13 +26,50 @@ function TypeIcon({ type }: { type: string }) {
   );
 }
 
+// ─── Loading Skeleton ────────────────────────────────────────────────────────
+
+function EmployeeCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+      <div className="flex items-start justify-between">
+        <div className="h-12 w-12 animate-pulse rounded-full bg-gray-200 dark:bg-gray-800" />
+        <div className="h-5 w-14 animate-pulse rounded-full bg-gray-200 dark:bg-gray-800" />
+      </div>
+      <div className="mt-4 space-y-2">
+        <div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+      </div>
+      <div className="mt-4 flex gap-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+        <div className="h-10 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="h-10 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Employees Page ──────────────────────────────────────────────────────────
 
 function EmployeesPage() {
+  const [employeesData, setEmployeesData] = useState<ApiResponse<AIEmployee[]>>({ data: null, error: null, source: "fallback" });
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const filtered = aiEmployees.filter((emp) => {
+  useEffect(() => {
+    fetchEmployees().then((result) => {
+      setEmployeesData(result);
+      setLoading(false);
+    });
+  }, []);
+
+  const employees = employeesData.data ?? [];
+  const dataSource = employeesData.source === "api" ? "Live data" : "Sample data";
+  const dataSourceBadge = employeesData.source === "api"
+    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+    : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
+
+  const filtered = employees.filter((emp) => {
     const matchesSearch =
       emp.name.toLowerCase().includes(search.toLowerCase()) ||
       emp.type.toLowerCase().includes(search.toLowerCase());
@@ -40,36 +79,63 @@ function EmployeesPage() {
   });
 
   const statusCounts = {
-    all: aiEmployees.length,
-    active: aiEmployees.filter((e) => e.status === "active").length,
-    paused: aiEmployees.filter((e) => e.status === "paused").length,
-    offline: aiEmployees.filter((e) => e.status === "offline").length,
+    all: employees.length,
+    active: employees.filter((e) => e.status === "active").length,
+    paused: employees.filter((e) => e.status === "paused").length,
+    offline: employees.filter((e) => e.status === "offline").length,
   };
 
   const statusStyles: Record<string, string> = {
-    active:
-      "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-500/30",
-    paused:
-      "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-500/30",
-    offline:
-      "bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900 dark:text-gray-400 dark:ring-gray-500/30",
+    active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/50 dark:text-emerald-400 dark:ring-emerald-500/30",
+    paused: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950/50 dark:text-amber-400 dark:ring-amber-500/30",
+    offline: "bg-gray-50 text-gray-700 ring-gray-600/20 dark:bg-gray-900 dark:text-gray-400 dark:ring-gray-500/30",
+  };
+
+  const handleToggleStatus = async (emp: AIEmployee) => {
+    setTogglingId(emp.id);
+    const action = emp.status === "active" ? "pause" : "activate";
+    const result = await toggleEmployeeStatus({ data: { empId: emp.id, action } });
+    if (result.success) {
+      // Optimistic update: toggle the status locally
+      setEmployeesData((prev) => {
+        if (!prev.data) return prev;
+        return {
+          ...prev,
+          data: prev.data.map((e) =>
+            e.id === emp.id
+              ? { ...e, status: (action === "activate" ? "active" : "paused") as "active" | "paused" }
+              : e
+          ),
+        };
+      });
+    }
+    setTogglingId(null);
   };
 
   return (
     <div className="mx-auto max-w-7xl">
-      {/* Header */}
+      {/* Header with data source badge */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-            AI Employees
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage your AI workforce.{" "}
-            <span className="font-medium text-indigo-600 dark:text-indigo-400">
-              {statusCounts.active} active
-            </span>{" "}
-            · {statusCounts.paused} paused · {statusCounts.offline} offline
-          </p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+              AI Employees
+            </h1>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              Manage your AI workforce.{" "}
+              {!loading && (
+                <>
+                  <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                    {statusCounts.active} active
+                  </span>{" "}
+                  · {statusCounts.paused} paused · {statusCounts.offline} offline
+                </>
+              )}
+            </p>
+          </div>
+          <span className={`self-start rounded-full px-3 py-1 text-xs font-medium ${dataSourceBadge}`}>
+            {dataSource}
+          </span>
         </div>
         <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]">
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -78,6 +144,13 @@ function EmployeesPage() {
           Hire New Employee
         </button>
       </div>
+
+      {/* Error banner */}
+      {employeesData.error && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+          Could not connect to backend — showing sample data
+        </div>
+      )}
 
       {/* Search and filter */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -111,14 +184,22 @@ function EmployeesPage() {
       </div>
 
       {/* Employee cards */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <EmployeeCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="mt-12 text-center">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
           </svg>
           <h3 className="mt-4 text-sm font-semibold text-gray-900 dark:text-white">No employees found</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Try adjusting your search or filter to find what you're looking for.
+            {search || filterStatus !== "all"
+              ? "Try adjusting your search or filter to find what you're looking for."
+              : "You haven't hired any AI employees yet. Click 'Hire New Employee' to get started."}
           </p>
         </div>
       ) : (
@@ -134,28 +215,12 @@ function EmployeesPage() {
                   {emp.avatar}
                   <span
                     className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-gray-900 ${
-                      emp.status === "active"
-                        ? "bg-emerald-500"
-                        : emp.status === "paused"
-                          ? "bg-amber-500"
-                          : "bg-gray-400"
+                      emp.status === "active" ? "bg-emerald-500" : emp.status === "paused" ? "bg-amber-500" : "bg-gray-400"
                     }`}
                   />
                 </div>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                    statusStyles[emp.status]
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      emp.status === "active"
-                        ? "bg-emerald-500"
-                        : emp.status === "paused"
-                          ? "bg-amber-500"
-                          : "bg-gray-400"
-                    }`}
-                  />
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusStyles[emp.status]}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${emp.status === "active" ? "bg-emerald-500" : emp.status === "paused" ? "bg-amber-500" : "bg-gray-400"}`} />
                   {emp.status.charAt(0).toUpperCase() + emp.status.slice(1)}
                 </span>
               </div>
@@ -175,9 +240,7 @@ function EmployeesPage() {
               <div className="mt-4 flex items-center gap-4 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-500">Tasks Done</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {emp.tasksCompleted.toLocaleString()}
-                  </p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{emp.tasksCompleted.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-500">Hired</p>
@@ -187,8 +250,22 @@ function EmployeesPage() {
 
               {/* Actions */}
               <div className="mt-4 flex gap-2">
-                <button className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-                  {emp.status === "active" ? "Pause" : "Activate"}
+                <button
+                  onClick={() => handleToggleStatus(emp)}
+                  disabled={togglingId === emp.id}
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                >
+                  {togglingId === emp.id ? (
+                    <span className="inline-flex items-center gap-1">
+                      <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      ...
+                    </span>
+                  ) : (
+                    emp.status === "active" ? "Pause" : "Activate"
+                  )}
                 </button>
                 <button className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
                   Configure
