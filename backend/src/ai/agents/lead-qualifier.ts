@@ -2,15 +2,16 @@
  * VirtuStaff — Lead Qualifier Agent
  *
  * Specializes in scoring and qualifying inbound leads.
- * Extracts key information, scores based on criteria, and routes to CRM.
+ * Uses Claude Haiku (fast/cheap) for structured data extraction and scoring.
  */
 
 import { BaseAgent, type AgentConfig } from './base.js';
 import type { Task } from '../../shared/types.js';
 import type { AIExecutionResult } from '../runtime.js';
+import { executeTask } from '../runtime.js';
 
 const DEFAULT_CONFIG: AgentConfig = {
-  model: 'gpt-4o-mini',
+  model: 'claude-3-5-haiku-20241022',
   systemPrompt: `You are an AI lead qualification specialist.
 Your role is to analyze lead information and determine:
 1. Lead score (1-100) based on fit and intent
@@ -29,13 +30,20 @@ export class LeadQualifier extends BaseAgent {
   }
 
   async execute(task: Task): Promise<AIExecutionResult> {
-    this.buildSystemPrompt(task);
-    // TODO: Implement lead scoring with GPT-4o-mini
-    return {
-      success: true,
-      output: { scored: true, score: 75, nextAction: 'call' },
-      summary: `Lead qualified for ${task.contactName || 'unknown'}`,
-      durationMs: 0,
-    };
+    return executeTask(task);
+  }
+
+  async process(input: { message: string; contactName?: string; contactEmail?: string }): Promise<AIExecutionResult> {
+    return executeTask({
+      id: `lead-${Date.now()}`,
+      organizationId: 'org',
+      aiEmployeeId: 'agent',
+      type: 'lead_qualification',
+      status: 'pending',
+      priority: 'normal',
+      inputData: { text: input.message },
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+    } as Task);
   }
 }

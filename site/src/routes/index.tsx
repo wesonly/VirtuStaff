@@ -6,6 +6,26 @@ import { PageLayout, FadeIn } from "~/components/shared";
 
 // ─── Server functions ───────────────────────────────────────────────────────
 
+const createCheckoutSession = createServerFn({ method: "POST" }).handler(
+  async ({ data }: { data: { plan: string } }) => {
+    const { plan } = data;
+    try {
+      const response = await fetch("http://localhost:3001/api/v1/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const result = await response.json();
+      if (result.success && result.checkoutUrl) {
+        return { ok: true, url: result.checkoutUrl };
+      }
+      return { ok: false, error: "Failed to create checkout session" };
+    } catch {
+      return { ok: false, error: "Checkout service unavailable" };
+    }
+  },
+);
+
 const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
   try {
     const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -502,8 +522,8 @@ const plans = [
       "Email support",
       "Monthly reports",
     ],
-    cta: "Get Started",
-    stripeUrl: "https://buy.stripe.com/eVq28q8wn36LeDc83Zes002",
+    cta: "Start 7-Day Free Trial",
+    planKey: "starter",
     featured: false,
   },
   {
@@ -518,8 +538,8 @@ const plans = [
       "Marketing content generation",
       "Priority support",
     ],
-    cta: "Start Free Trial",
-    stripeUrl: "https://buy.stripe.com/14A5kCdQHazdcv4983es001",
+    cta: "Start 7-Day Free Trial",
+    planKey: "growth",
     featured: true,
   },
   {
@@ -535,8 +555,8 @@ const plans = [
       "API access",
       "White-label options",
     ],
-    cta: "Contact Sales",
-    stripeUrl: "https://buy.stripe.com/3cIfZgdQH8r5fHg83Zes000",
+    cta: "Start 7-Day Free Trial",
+    planKey: "scale",
     featured: false,
   },
 ];
@@ -604,9 +624,14 @@ function Pricing() {
               </ul>
 
               <a
-                href={plan.stripeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  const result = await createCheckoutSession({ data: { plan: plan.planKey } });
+                  if (result.ok && result.url) {
+                    window.location.href = result.url;
+                  }
+                }}
                 className={`inline-flex items-center justify-center rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.97] ${
                   plan.featured
                     ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md hover:from-indigo-500 hover:to-violet-500 hover:shadow-lg"
@@ -616,7 +641,7 @@ function Pricing() {
                 {plan.cta}
               </a>
               <p className="mt-2 text-center text-xs text-gray-400 dark:text-gray-500">
-                Subscribe via Stripe
+                7-day free trial, then {plan.price}/month
               </p>
             </div>
           ))}

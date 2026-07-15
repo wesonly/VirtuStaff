@@ -2,15 +2,16 @@
  * VirtuStaff — Email Agent
  *
  * Handles email composition, responses, and follow-ups.
- * Integrates with email sending services for delivery.
+ * Uses Claude for content generation and email sending.
  */
 
 import { BaseAgent, type AgentConfig } from './base.js';
 import type { Task } from '../../shared/types.js';
 import type { AIExecutionResult } from '../runtime.js';
+import { executeTask } from '../runtime.js';
 
 const DEFAULT_CONFIG: AgentConfig = {
-  model: 'claude-3-5-sonnet-20240620',
+  model: 'claude-3-5-sonnet-20241022',
   systemPrompt: `You are a professional AI email assistant for a business.
 Your role is to compose clear, professional emails that represent the business well.
 Adapt tone based on context: formal for prospects, warm for existing customers.
@@ -27,13 +28,20 @@ export class EmailAgent extends BaseAgent {
   }
 
   async execute(task: Task): Promise<AIExecutionResult> {
-    this.buildSystemPrompt(task);
-    // TODO: Implement email composition with Claude
-    return {
-      success: true,
-      output: { generated: true, draft: task.inputData },
-      summary: `Email composed for ${task.contactName || 'recipient'}`,
-      durationMs: 0,
-    };
+    return executeTask(task);
+  }
+
+  async process(input: { message: string; contactName?: string; contactEmail?: string }): Promise<AIExecutionResult> {
+    return executeTask({
+      id: `email-${Date.now()}`,
+      organizationId: 'org',
+      aiEmployeeId: 'agent',
+      type: 'email',
+      status: 'pending',
+      priority: 'normal',
+      inputData: { text: input.message },
+      contactName: input.contactName,
+      contactEmail: input.contactEmail,
+    } as Task);
   }
 }

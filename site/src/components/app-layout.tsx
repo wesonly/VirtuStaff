@@ -6,8 +6,8 @@ const navItems = [
   { label: "AI Employees", href: "/app/employees", icon: "users", soon: false },
   { label: "Tasks", href: "#", icon: "tasks", soon: true },
   { label: "Integrations", href: "#", icon: "grid", soon: true },
-  { label: "Settings", href: "#", icon: "settings", soon: true },
-  { label: "Billing", href: "#", icon: "credit", soon: true },
+  { label: "Settings", href: "/app/settings", icon: "settings", soon: false },
+  { label: "Billing", href: "/app/billing", icon: "credit", soon: false },
 ];
 
 function NavIcon({ icon }: { icon: string }) {
