@@ -10,6 +10,15 @@ import { API_PREFIX } from './config/constants.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { healthRouter } from './modules/health.js';
 import { emailRouter } from './modules/email.js';
+import { checkoutRouter } from './modules/checkout.js';
+import { aiRouter } from './modules/ai-test.js';
+import { orgRouter } from './modules/organizations/index.js';
+import { employeeRouter } from './modules/employees/index.js';
+import { taskRouter } from './modules/tasks/index.js';
+import { workflowRouter } from './modules/workflows/index.js';
+import { subscriptionRouter } from './modules/subscriptions/index.js';
+import { crmRouter } from './modules/crm/index.js';
+import { authRouter } from './modules/auth/index.js';
 
 const app = new Hono();
 
@@ -24,17 +33,18 @@ app.use('*', cors({
 // Global error handler
 app.onError(errorHandler);
 
-// Health check and email (unauthenticated)
+// Mount all route modules
 app.route(`${API_PREFIX}`, healthRouter);
 app.route(`${API_PREFIX}`, emailRouter);
-
-// Import and mount route modules here as they're built:
-// app.route(`${API_PREFIX}`, orgRouter);
-// app.route(`${API_PREFIX}`, employeeRouter);
-// app.route(`${API_PREFIX}`, taskRouter);
-// app.route(`${API_PREFIX}`, workflowRouter);
-// app.route(`${API_PREFIX}`, subscriptionRouter);
-// app.route(`${API_PREFIX}`, crmRouter);
+app.route(`${API_PREFIX}`, checkoutRouter);
+app.route(`${API_PREFIX}`, aiRouter);
+app.route(`${API_PREFIX}`, orgRouter);
+app.route(`${API_PREFIX}`, employeeRouter);
+app.route(`${API_PREFIX}`, taskRouter);
+app.route(`${API_PREFIX}`, workflowRouter);
+app.route(`${API_PREFIX}`, subscriptionRouter);
+app.route(`${API_PREFIX}`, crmRouter);
+app.route(`${API_PREFIX}`, authRouter);
 
 // 404 handler
 app.notFound((c) => {
