@@ -173,12 +173,12 @@ Never claim to be human. Identify yourself as an AI assistant when asked.`;
  */
 function selectModel(type: string): string {
   const models: Record<string, string> = {
-    call: 'claude-3-5-sonnet-20241022',
-    email: 'claude-3-5-sonnet-20241022',
-    lead_qualification: 'claude-3-5-haiku-20241022',
-    sms: 'claude-3-5-haiku-20241022',
+    call: 'claude-sonnet-4-5-20250929',
+    email: 'claude-sonnet-4-5-20250929',
+    lead_qualification: 'claude-haiku-4-5-20251001',
+    sms: 'claude-haiku-4-5-20251001',
   };
-  return models[type] ?? 'claude-3-5-sonnet-20241022';
+  return models[type] ?? 'claude-sonnet-4-5-20250929';
 }
 
 /**

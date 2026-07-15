@@ -134,7 +134,7 @@ export async function chat(params: {
   model?: string;
 }): Promise<string> {
   const response = await callClaude({
-    model: params.model ?? 'claude-3-5-sonnet-20241022',
+    model: params.model ?? 'claude-sonnet-4-5-20250929',
     systemPrompt: params.systemPrompt ?? 'You are a helpful AI assistant.',
     messages: [{ role: 'user', content: params.message }],
   });
