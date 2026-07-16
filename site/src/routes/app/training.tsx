@@ -27,7 +27,7 @@ const features = [
       { q: "Does it support multiple languages?", a: "Yes, our AI supports 20+ languages including Spanish, French, German, and Mandarin." },
     ],
     color: "from-blue-600 to-indigo-600",
-    videoUrl: "https://www.youtube.com/embed/nQeUAT5q6kE",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "outbound",
@@ -47,7 +47,7 @@ const features = [
       { q: "What about DNC lists?", a: "VirtuStaff automatically checks against national DNC registries before each call." },
     ],
     color: "from-violet-600 to-purple-600",
-    videoUrl: "https://www.youtube.com/embed/hJw34RCyEcE",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "booking",
@@ -66,7 +66,7 @@ const features = [
       { q: "What calendars are supported?", a: "Google Calendar, Microsoft Outlook, and Apple iCal — more coming soon." },
     ],
     color: "from-emerald-600 to-teal-600",
-    videoUrl: "https://www.youtube.com/embed/apXfQrHDPek",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "crm",
@@ -86,7 +86,7 @@ const features = [
       { q: "Is the sync real-time?", a: "Yes, changes sync in both directions within seconds for supported CRMs." },
     ],
     color: "from-orange-600 to-red-600",
-    videoUrl: "https://www.youtube.com/embed/vlN6JZ5xuR8",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "email",
@@ -106,7 +106,7 @@ const features = [
       { q: "Are there sending limits?", a: "Limits depend on your plan and email provider — we help you stay compliant." },
     ],
     color: "from-cyan-600 to-blue-600",
-    videoUrl: "https://www.youtube.com/embed/KmkYQ2w14YM",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "sms",
@@ -126,7 +126,7 @@ const features = [
       { q: "What about compliance?", a: "We handle TCPA/10DLC compliance automatically — opt-out language is always included." },
     ],
     color: "from-pink-600 to-rose-600",
-    videoUrl: "https://www.youtube.com/embed/tDW6MXKcTmw",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "leads",
@@ -146,7 +146,7 @@ const features = [
       { q: "Can leads be assigned automatically?", a: "Yes, leads can be round-robin assigned or routed based on territory/skills." },
     ],
     color: "from-amber-600 to-yellow-600",
-    videoUrl: "https://www.youtube.com/embed/HFFMdes3R5E",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "knowledge",
@@ -166,7 +166,7 @@ const features = [
       { q: "How often should I update?", a: "We recommend reviewing weekly — the AI learns from new content automatically." },
     ],
     color: "from-slate-600 to-gray-600",
-    videoUrl: "https://www.youtube.com/embed/yke4fLQUsh4",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
   {
     id: "analytics",
@@ -186,7 +186,7 @@ const features = [
       { q: "Is there an API for custom dashboards?", a: "Yes, our Analytics API is available on Scale plans for building custom BI integrations." },
     ],
     color: "from-indigo-600 to-blue-600",
-    videoUrl: "https://www.youtube.com/embed/XadepNiwqzw",
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ",
   },
 ];
 
