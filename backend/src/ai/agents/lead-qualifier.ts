@@ -11,7 +11,7 @@ import type { AIExecutionResult } from '../runtime.js';
 import { executeTask } from '../runtime.js';
 
 const DEFAULT_CONFIG: AgentConfig = {
-  model: 'claude-haiku-4-5-20251001',
+  model: 'claude-3-5-haiku-20241022',
   systemPrompt: `You are an AI lead qualification specialist.
 Your role is to analyze lead information and determine:
 1. Lead score (1-100) based on fit and intent
