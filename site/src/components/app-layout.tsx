@@ -8,7 +8,7 @@ const navItems = [
   { label: "Getting Started", href: "/app/getting-started", icon: "compass", soon: false, badge: true },
   { label: "Setup Wizard", href: "/app/setup-wizard", icon: "tasks", soon: false },
   { label: "Training", href: "/app/training", icon: "play", soon: false },
-  { label: { label: "Integrations", href: "/app/integrations", icon: "grid", soon: false },
+  { label: "Integrations", href: "/app/integrations", icon: "grid", soon: false },
   { label: "Settings", href: "/app/settings", icon: "settings", soon: false },
   { label: "Help Center", href: "/app/help", icon: "help", soon: false },
   { label: "Billing", href: "/app/billing", icon: "credit", soon: false },
