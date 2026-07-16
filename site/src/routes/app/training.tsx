@@ -328,3 +328,4 @@ function TrainingPage() {
     </div>
   );
 }
+
