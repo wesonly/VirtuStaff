@@ -1,0 +1,102 @@
+diff --git a/site/api/ssr.ts b/site/api/ssr.ts
+new file mode 100644
+index 0000000..f876bbc
+--- /dev/null
++++ b/site/api/ssr.ts
+@@ -0,0 +1,74 @@
++/**
++ * Vercel serverless function for TanStack Start SSR.
++ * Imports the built server handler and adapts it to Vercel's Node.js runtime.
++ */
++import handler from '../dist/server/server.js';
++
++export default async function ssr(
++  req: import('http').IncomingMessage,
++  res: import('http').ServerResponse
++) {
++  const host = req.headers.host || 'localhost';
++  const protocol = req.headers['x-forwarded-proto'] || 'https';
++  const url = `${protocol}://${host}${req.url || '/'}`;
++
++  // Build a standard Request object from the incoming Vercel request
++  const headers = new Headers();
++  for (const [key, value] of Object.entries(req.headers)) {
++    if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : String(value));
++  }
++
++  const body = req.method === 'GET' || req.method === 'HEAD'
++    ? undefined
++    : await new Promise<string>((resolve) => {
++        let data = '';
++        req.on('data', (chunk) => (data += chunk));
++        req.on('end', () => resolve(data));
++      });
++
++  const request = new Request(url, {
++    method: req.method,
++    headers,
++    body,
++  });
++
++  try {
++    // Try static file first from dist/client
++    const pathname = new URL(url).pathname;
++    if (pathname !== '/') {
++      try {
++        const fs = await import('fs');
++        const filePath = `./dist/client${pathname}`;
++        if (fs.existsSync(filePath)) {
++          const content = fs.readFileSync(filePath);
++          const ext = pathname.split('.').pop() || '';
++          const contentTypes: Record<string, string> = {
++            js: 'application/javascript',
++            css: 'text/css',
++            html: 'text/html',
++            png: 'image/png',
++            jpg: 'image/jpeg',
++            jpeg: 'image/jpeg',
++            svg: 'image/svg+xml',
++            json: 'application/json',
++            txt: 'text/plain',
++            ico: 'image/x-icon',
++            webp: 'image/webp',
++          };
++          res.writeHead(200, { 'Content-Type': contentTypes[ext] || 'application/octet-stream' });
++          res.end(content);
++          return;
++        }
++      } catch {}
++    }
++
++    const response = await (handler as { fetch: (r: Request) => Promise<Response> }).fetch(request);
++    res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
++    const responseBody = await response.text();
++    res.end(responseBody);
++  } catch (err) {
++    console.error('SSR handler error:', err);
++    res.writeHead(500, { 'Content-Type': 'text/plain' });
++    res.end('Internal Server Error');
++  }
++}
+\ No newline at end of file
+diff --git a/site/vercel.json b/site/vercel.json
+new file mode 100644
+index 0000000..2ea0248
+--- /dev/null
++++ b/site/vercel.json
+@@ -0,0 +1,14 @@
++{
++  "buildCommand": "vite build",
++  "outputDirectory": "dist/client",
++  "framework": null,
++  "installCommand": "npm install",
++  "rewrites": [
++    { "source": "/(.*)", "destination": "/api/ssr" }
++  ],
++  "functions": {
++    "api/ssr.ts": {
++      "runtime": "nodejs@20.x"
++    }
++  }
++}
+\ No newline at end of file

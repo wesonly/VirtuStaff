@@ -1,0 +1,91 @@
+From 5e293367a4af314cbf4502f191c2f91c16755333 Mon Sep 17 00:00:00 2001
+From: wesonly <wesonly@users.noreply.github.com>
+Date: Wed, 15 Jul 2026 22:22:32 +0000
+Subject: [PATCH] fix: update Claude model names to Sonnet 4.5 / Haiku 4.5 (3.5
+ models no longer available)
+
+---
+ backend/src/ai/agents/call-agent.ts     |  2 +-
+ backend/src/ai/agents/email-agent.ts    |  2 +-
+ backend/src/ai/agents/lead-qualifier.ts |  2 +-
+ backend/src/ai/runtime.ts               | 10 +++++-----
+ backend/src/integrations/anthropic.ts   |  2 +-
+ 5 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/backend/src/ai/agents/call-agent.ts b/backend/src/ai/agents/call-agent.ts
+index d72d73a..09a6422 100644
+--- a/backend/src/ai/agents/call-agent.ts
++++ b/backend/src/ai/agents/call-agent.ts
+@@ -11,7 +11,7 @@ import type { AIExecutionResult } from '../runtime.js';
+ import { executeTask } from '../runtime.js';
+ 
+ const DEFAULT_CONFIG: AgentConfig = {
+-  model: 'claude-3-5-sonnet-20241022',
++  model: 'claude-sonnet-4-5-20250929',
+   systemPrompt: `You are a professional AI phone agent for a business. 
+ Your role is to handle calls professionally, answer questions, 
+ qualify leads, schedule appointments, and provide information.
+diff --git a/backend/src/ai/agents/email-agent.ts b/backend/src/ai/agents/email-agent.ts
+index e49743f..896c9bc 100644
+--- a/backend/src/ai/agents/email-agent.ts
++++ b/backend/src/ai/agents/email-agent.ts
+@@ -11,7 +11,7 @@ import type { AIExecutionResult } from '../runtime.js';
+ import { executeTask } from '../runtime.js';
+ 
+ const DEFAULT_CONFIG: AgentConfig = {
+-  model: 'claude-3-5-sonnet-20241022',
++  model: 'claude-sonnet-4-5-20250929',
+   systemPrompt: `You are a professional AI email assistant for a business.
+ Your role is to compose clear, professional emails that represent the business well.
+ Adapt tone based on context: formal for prospects, warm for existing customers.
+diff --git a/backend/src/ai/agents/lead-qualifier.ts b/backend/src/ai/agents/lead-qualifier.ts
+index d1b9397..b6ef16b 100644
+--- a/backend/src/ai/agents/lead-qualifier.ts
++++ b/backend/src/ai/agents/lead-qualifier.ts
+@@ -11,7 +11,7 @@ import type { AIExecutionResult } from '../runtime.js';
+ import { executeTask } from '../runtime.js';
+ 
+ const DEFAULT_CONFIG: AgentConfig = {
+-  model: 'claude-3-5-haiku-20241022',
++  model: 'claude-haiku-4-5-20251001',
+   systemPrompt: `You are an AI lead qualification specialist.
+ Your role is to analyze lead information and determine:
+ 1. Lead score (1-100) based on fit and intent
+diff --git a/backend/src/ai/runtime.ts b/backend/src/ai/runtime.ts
+index 7f10587..7a8736e 100644
+--- a/backend/src/ai/runtime.ts
++++ b/backend/src/ai/runtime.ts
+@@ -173,12 +173,12 @@ Never claim to be human. Identify yourself as an AI assistant when asked.`;
+  */
+ function selectModel(type: string): string {
+   const models: Record<string, string> = {
+-    call: 'claude-3-5-sonnet-20241022',
+-    email: 'claude-3-5-sonnet-20241022',
+-    lead_qualification: 'claude-3-5-haiku-20241022',
+-    sms: 'claude-3-5-haiku-20241022',
++    call: 'claude-sonnet-4-5-20250929',
++    email: 'claude-sonnet-4-5-20250929',
++    lead_qualification: 'claude-haiku-4-5-20251001',
++    sms: 'claude-haiku-4-5-20251001',
+   };
+-  return models[type] ?? 'claude-3-5-sonnet-20241022';
++  return models[type] ?? 'claude-sonnet-4-5-20250929';
+ }
+ 
+ /**
+diff --git a/backend/src/integrations/anthropic.ts b/backend/src/integrations/anthropic.ts
+index 67db87c..e0fc1be 100644
+--- a/backend/src/integrations/anthropic.ts
++++ b/backend/src/integrations/anthropic.ts
+@@ -134,7 +134,7 @@ export async function chat(params: {
+   model?: string;
+ }): Promise<string> {
+   const response = await callClaude({
+-    model: params.model ?? 'claude-3-5-sonnet-20241022',
++    model: params.model ?? 'claude-sonnet-4-5-20250929',
+     systemPrompt: params.systemPrompt ?? 'You are a helpful AI assistant.',
+     messages: [{ role: 'user', content: params.message }],
+   });
+-- 
+2.43.0
+
