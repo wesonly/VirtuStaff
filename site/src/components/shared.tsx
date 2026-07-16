@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useAuth, UserButton, SignInButton, SignUpButton } from "@clerk/clerk-react";
 
 // ─── Logo ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,7 @@ export function Logo() {
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useAuth();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-gray-200/60 bg-white/80 backdrop-blur-lg dark:border-gray-800/60 dark:bg-gray-950/80">
@@ -44,12 +46,37 @@ export function Navbar() {
           <a href="/blog" className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
             Blog
           </a>
-          <a
-            href="/#waitlist"
-            className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]"
-          >
-            Get Early Access
-          </a>
+
+          {isLoaded && isSignedIn ? (
+            <>
+              <a
+                href="/app"
+                className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]"
+              >
+                Dashboard
+              </a>
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "h-8 w-8 rounded-full border-2 border-indigo-200 dark:border-indigo-800",
+                  },
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <SignInButton mode="redirect">
+                <button className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="redirect">
+                <button className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]">
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -89,13 +116,32 @@ export function Navbar() {
             <a href="/blog" onClick={() => setOpen(false)} className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
               Blog
             </a>
-            <a
-              href="/#waitlist"
-              onClick={() => setOpen(false)}
-              className="mt-2 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
-            >
-              Get Early Access
-            </a>
+            {isLoaded && isSignedIn ? (
+              <a
+                href="/app"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
+              >
+                Dashboard
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/signup"
+                  onClick={() => setOpen(false)}
+                  className="mt-2 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
+                >
+                  Sign Up
+                </a>
+              </>
+            )}
           </div>
         </div>
       )}

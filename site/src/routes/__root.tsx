@@ -6,7 +6,13 @@ import {
   Link,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { ClerkProvider } from "@clerk/clerk-react";
 import appCss from "~/styles/app.css?url";
+
+const CLERK_PUBLISHABLE_KEY =
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+  import.meta.env.CLERK_PUBLISHABLE_KEY ||
+  "";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -69,9 +75,11 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <RootDocument>
-      <Outlet />
-    </RootDocument>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+      <RootDocument>
+        <Outlet />
+      </RootDocument>
+    </ClerkProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
+import { useAuth, UserButton } from "@clerk/clerk-react";
 
 const navItems = [
   { label: "Dashboard", href: "/app", icon: "dashboard", soon: false },
@@ -29,6 +30,7 @@ function NavIcon({ icon }: { icon: string }) {
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -67,6 +69,23 @@ export function AppLayout() {
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-4 dark:border-gray-800">
+          <div className="mb-3 flex items-center gap-3 rounded-lg px-3 py-2">
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "h-8 w-8 rounded-full border-2 border-indigo-200 dark:border-indigo-800",
+                },
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                {user?.fullName || user?.emailAddresses?.[0]?.emailAddress || "User"}
+              </p>
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                {user?.emailAddresses?.[0]?.emailAddress || ""}
+              </p>
+            </div>
+          </div>
           <Link to="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
@@ -94,10 +113,16 @@ export function AppLayout() {
           <div className="flex items-center gap-3">
             <button className="rounded-full p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.75 8.75 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
               </svg>
             </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-xs font-bold text-white">AC</div>
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "h-8 w-8 rounded-full border-2 border-indigo-200 dark:border-indigo-800",
+                },
+              }}
+            />
           </div>
         </header>
 
