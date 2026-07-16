@@ -9,8 +9,8 @@ import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '../../db/client.js';
-import { organizations, organizationMembers, users } from '../../db/schema/index.js';
-import { eq } from 'drizzle-orm';
+import { organizations, organizationMembers, users, aiEmployees, tasks, taskLogs } from '../../db/schema/index.js';
+import { eq, and, desc, count } from 'drizzle-orm';
 import { generateId } from '../../shared/utils.js';
 
 export const orgRouter = new Hono();
@@ -95,4 +95,40 @@ orgRouter.post('/orgs/:orgId/members', async (c) => {
   const body = await c.req.json();
   // TODO: Invite via Clerk, then create membership record
   return c.json({ data: { invited: true, email: body.email } }, 201);
+});
+
+// ─── Dashboard Endpoints ─────────────────────────────────────────────────────
+
+orgRouter.get('/orgs/:orgId/stats', async (c) => {
+  const { orgId } = c.req.param();
+  const [employeeResult, taskResult, activeResult] = await Promise.all([
+    db.select({ count: count() }).from(aiEmployees).where(eq(aiEmployees.organizationId, orgId)),
+    db.select({ count: count() }).from(tasks).where(eq(tasks.organizationId, orgId)),
+    db.select({ count: count() }).from(aiEmployees).where(and(eq(aiEmployees.organizationId, orgId), eq(aiEmployees.status, 'active'))),
+  ]);
+  return c.json({
+    data: {
+      totalEmployees: Number(employeeResult[0]?.count || 0),
+      totalTasks: Number(taskResult[0]?.count || 0),
+      activeEmployees: Number(activeResult[0]?.count || 0),
+    },
+  });
+});
+
+orgRouter.get('/orgs/:orgId/activity', async (c) => {
+  const { orgId } = c.req.param();
+  const logs = await db
+    .select({
+      id: taskLogs.id,
+      type: taskLogs.source,
+      status: taskLogs.level,
+      message: taskLogs.message,
+      createdAt: taskLogs.createdAt,
+    })
+    .from(taskLogs)
+    .innerJoin(tasks, eq(taskLogs.taskId, tasks.id))
+    .where(eq(tasks.organizationId, orgId))
+    .orderBy(desc(taskLogs.createdAt))
+    .limit(20);
+  return c.json({ data: logs });
 });

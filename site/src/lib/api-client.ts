@@ -19,7 +19,12 @@ export interface ApiResponse<T> {
 
 // ─── Backend URL ─────────────────────────────────────────────────────────────
 
-const API_BASE = "http://localhost:3001/api/v1";
+/**
+ * API base URL for backend requests.
+ * In development, use localhost:3001 (backend dev server).
+ * In production (Vercel), use the API proxy at /api/v1 which forwards to the backend.
+ */
+const API_BASE = import.meta.env.VITE_API_URL || "/api/v1";
 const DEFAULT_ORG_ID = "default-org";
 
 // ─── Server Functions ───────────────────────────────────────────────────────

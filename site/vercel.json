@@ -5,6 +5,10 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/v1/[...slug]"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/ssr"
     }
