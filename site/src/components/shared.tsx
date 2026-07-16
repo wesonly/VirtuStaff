@@ -127,14 +127,14 @@ export function Navbar() {
             ) : (
               <>
                 <a
-                  href="/login"
+                  href="/sign-in"
                   onClick={() => setOpen(false)}
                   className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
                 >
                   Sign In
                 </a>
                 <a
-                  href="/signup"
+                  href="/sign-up"
                   onClick={() => setOpen(false)}
                   className="mt-2 inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm"
                 >

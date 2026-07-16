@@ -13,7 +13,7 @@ function AppLayoutRoute() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      navigate({ to: "/login" });
+      navigate({ to: "/sign-in" });
     }
   }, [isLoaded, isSignedIn, navigate]);
 

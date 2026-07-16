@@ -1,11 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { SignIn } from "@clerk/clerk-react";
+import { SignUp } from "@clerk/clerk-react";
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
+export const Route = createFileRoute("/sign-up")({
+  component: SignUpPage,
 });
 
-function LoginPage() {
+function SignUpPage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-white px-6 dark:from-gray-950 dark:to-gray-900">
       <div className="mb-8 flex items-center gap-2">
@@ -15,7 +15,7 @@ function LoginPage() {
         </svg>
         <span className="text-xl font-bold tracking-tight">VirtuStaff</span>
       </div>
-      <SignIn
+      <SignUp
         appearance={{
           elements: {
             rootBox: "mx-auto w-full max-w-md",
@@ -31,9 +31,9 @@ function LoginPage() {
         }}
       />
       <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-        Don't have an account?{" "}
-        <Link to="/signup" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-          Sign up
+        Already have an account?{" "}
+        <Link to="/sign-in" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+          Sign in
         </Link>
       </p>
     </div>
