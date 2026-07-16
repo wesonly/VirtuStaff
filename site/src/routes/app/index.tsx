@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppLayout } from "~/components/app-layout";
 import { fetchDashboardStats, fetchRecentActivity } from "~/lib/api-client";
@@ -91,6 +91,46 @@ function AppDashboard() {
           <span className={`rounded-full px-3 py-1 text-xs font-medium ${dataSourceBadge}`}>
             {dataSource}
           </span>
+        </div>
+
+        {/* Onboarding banner */}
+        <div className="mb-6 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 p-5 dark:border-indigo-800/50 dark:from-indigo-950/30 dark:via-violet-950/20 dark:to-purple-950/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-sm">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-2.71 2.71a2.125 2.125 0 11-3-3l2.71-2.71m9.71 5.46l-2.71-2.71m-7.17-7.17l-2.71 2.71a2.125 2.125 0 01-3-3l2.71-2.71m9.71 5.46l.29-.29a2.125 2.125 0 00-3-3l-.29.29m4.5 4.5a10.5 10.5 0 01-4.5 4.5m-7.5-7.5a10.5 10.5 0 014.5-4.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Complete your setup
+                </h3>
+                <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                  1 of 9 steps completed ·{" "}
+                  <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                    11%
+                  </span>{" "}
+                  complete
+                </p>
+                <div className="mt-2 h-1.5 w-48 overflow-hidden rounded-full bg-indigo-200 dark:bg-indigo-900/50">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+                    style={{ width: "11%" }}
+                  />
+                </div>
+              </div>
+            </div>
+            <Link
+              to="/app/getting-started"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 active:scale-[0.97]"
+            >
+              Continue Setup
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
         </div>
 
         {/* Error banner */}

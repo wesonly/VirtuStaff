@@ -27,8 +27,18 @@ function SettingsPage() {
       {/* Organization */}
       <div className="mb-8 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Organization</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Update your organization's name and details.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Organization</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Update your organization's name and details.</p>
+            </div>
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 dark:hover:bg-indigo-950/50">
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Watch Demo
+            </button>
+          </div>
         </div>
         <div className="space-y-5 p-6">
           <div>
@@ -74,8 +84,18 @@ function SettingsPage() {
       {/* Notifications */}
       <div className="mb-8 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Configure how you receive alerts and updates.</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Configure how you receive alerts and updates.</p>
+            </div>
+            <button className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 dark:hover:bg-indigo-950/50">
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Watch Demo
+            </button>
+          </div>
         </div>
         <div className="space-y-4 p-6">
           {[

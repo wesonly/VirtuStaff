@@ -44,7 +44,15 @@ function BillingPage() {
 
       {/* Plan comparison */}
       <div className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Available Plans</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Available Plans</h2>
+          <button className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 dark:hover:bg-indigo-950/50">
+            <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            Watch Demo
+          </button>
+        </div>
         <div className="grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <div key={plan.name} className={`relative rounded-xl border p-6 transition-all ${
