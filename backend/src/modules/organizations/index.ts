@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { db } from '../../db/client.js';
 import { organizations, organizationMembers, users, aiEmployees, tasks, taskLogs } from '../../db/schema/index.js';
-import { eq, and, desc, count } from 'drizzle-orm';
+import { eq, and, desc, count, inArray } from 'drizzle-orm';
 import { generateId } from '../../shared/utils.js';
 
 export const orgRouter = new Hono();
@@ -60,7 +60,7 @@ orgRouter.get('/orgs/:orgId', async (c) => {
 orgRouter.patch('/orgs/:orgId', async (c) => {
   const { orgId } = c.req.param();
   const body = await c.req.json();
-  const allowed = ['name', 'size', 'timezone', 'logo_url'];
+  const allowed = ['name', 'slug', 'size', 'timezone', 'logo_url'];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (body[key] !== undefined) updates[key] = body[key];
@@ -71,6 +71,22 @@ orgRouter.patch('/orgs/:orgId', async (c) => {
   await db.update(organizations).set(updates).where(eq(organizations.id, orgId));
   const updated = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
   return c.json({ data: updated[0] });
+});
+
+orgRouter.delete('/orgs/:orgId', async (c) => {
+  const { orgId } = c.req.param();
+  // Get task IDs for this org
+  const orgTasks = await db.select({ id: tasks.id }).from(tasks).where(eq(tasks.organizationId, orgId));
+  const taskIds = orgTasks.map((t) => t.id);
+  // Delete related records (order matters for foreign key constraints)
+  await db.delete(organizationMembers).where(eq(organizationMembers.organizationId, orgId));
+  if (taskIds.length > 0) {
+    await db.delete(taskLogs).where(inArray(taskLogs.taskId, taskIds));
+  }
+  await db.delete(tasks).where(eq(tasks.organizationId, orgId));
+  await db.delete(aiEmployees).where(eq(aiEmployees.organizationId, orgId));
+  await db.delete(organizations).where(eq(organizations.id, orgId));
+  return c.json({ success: true });
 });
 
 orgRouter.get('/orgs/:orgId/members', async (c) => {
