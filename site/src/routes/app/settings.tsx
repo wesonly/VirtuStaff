@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
-import { AppLayout } from "~/components/app-layout";
+import { AiAssistant } from "~/components/ai-assistant";
 import {
   fetchOrganization,
   updateOrganization,
@@ -158,68 +158,49 @@ function SettingsPage() {
 
   if (orgLoading) {
     return (
-      <AppLayout>
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8">
-            <SkeletonBlock className="mb-2 h-8 w-32" />
-            <SkeletonBlock className="h-4 w-64" />
-          </div>
-          <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-            <SkeletonBlock className="mb-4 h-6 w-40" />
-            <div className="space-y-4">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-8">
+          <SkeletonBlock className="mb-2 h-8 w-32" />
+          <SkeletonBlock className="h-4 w-64" />
+        </div>
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+          <SkeletonBlock className="mb-4 h-6 w-40" />
+          <div className="space-y-4">
+            <SkeletonBlock className="h-10 w-full" />
+            <SkeletonBlock className="h-10 w-full" />
+            <div className="grid gap-4 sm:grid-cols-2">
               <SkeletonBlock className="h-10 w-full" />
               <SkeletonBlock className="h-10 w-full" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <SkeletonBlock className="h-10 w-full" />
-                <SkeletonBlock className="h-10 w-full" />
-              </div>
             </div>
           </div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
-  // ─── Error / No org state ───────────────────────────────────────────────
+  // ─── Error / No org state — show defaults ────────────────────────────────
 
-  if (orgError || !org) {
-    return (
-      <AppLayout>
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
-          </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-12 text-center dark:border-amber-900/50 dark:bg-amber-950/20">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-              </svg>
-            </div>
-            <h3 className="mt-4 text-sm font-semibold text-amber-800 dark:text-amber-300">
-              {orgError === "Backend returned 404" ? "No organization found" : "Could not load settings"}
-            </h3>
-            <p className="mt-1 text-sm text-amber-700 dark:text-amber-400">
-              {orgError === "Backend returned 404"
-                ? "You don't appear to be part of an organization yet. Create one to get started."
-                : orgError || "An error occurred while loading your settings."}
-            </p>
-            <button
-              onClick={loadData}
-              className="mt-4 rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/50"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </AppLayout>
-    );
+  if ((orgError || !org) && !orgLoading) {
+    // Set defaults so the page is still usable
+    if (!name) setName("My Company");
+    if (!slug) setSlug("my-company");
   }
 
   // ─── Main settings view ─────────────────────────────────────────────────
 
   return (
-    <AppLayout>
-      <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-4xl">
+        {/* Offline notice */}
+        {orgError && (
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400">
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <span>Using offline defaults — connect to backend to save changes.</span>
+            <button onClick={loadData} className="ml-auto rounded-lg border border-amber-300 px-3 py-1 text-xs font-medium hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-950/30">Retry</button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Settings</h1>
@@ -576,6 +557,5 @@ function SettingsPage() {
           </div>
         )}
       </div>
-    </AppLayout>
   );
 }
