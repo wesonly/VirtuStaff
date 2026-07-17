@@ -185,6 +185,13 @@ export const fetchBillingSubscription = createServerFn({ method: "GET" }).handle
     if (res.ok) {
       const json = await res.json();
       return { data: json.data as BillingSubscription, error: null, source: "api" };
+    }
+    return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
+  } catch {
+    return { data: null, error: "Backend unreachable", source: "fallback" };
+  }
+});
+
 // ─── Settings / Organization API ──────────────────────────────────────────────
 
 export interface Organization {
@@ -253,6 +260,14 @@ export const createBillingPortal = createServerFn({ method: "POST" }).handler(as
     if (res.ok) {
       const json = await res.json();
       return { success: true, portalUrl: json.portalUrl };
+    }
+    return { success: false, error: `Backend returned ${res.status}` };
+  } catch {
+    return { success: false, error: "Backend unreachable" };
+  }
+});
+
+/**
  * Update organization settings.
  */
 export const updateOrganization = createServerFn({ method: "POST" }).handler(
@@ -342,6 +357,14 @@ export const fetchSubscriptionPlans = createServerFn({ method: "GET" }).handler(
     if (res.ok) {
       const json = await res.json();
       return { data: json.data as SubscriptionPlan[], error: null, source: "api" };
+    }
+    return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
+  } catch {
+    return { data: null, error: "Backend unreachable", source: "fallback" };
+  }
+});
+
+/**
  * Fetch organization members.
  */
 export const fetchOrgMembers = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<OrgMember[]>> => {
