@@ -64,7 +64,7 @@ function EmployeesPage() {
   }, []);
 
   const employees = employeesData.data ?? [];
-  const dataSource = employeesData.source === "api" ? "Live data" : "Sample data";
+  const dataSource = employeesData.source === "api" ? "Live data" : "Sample data — connect to backend";
   const dataSourceBadge = employeesData.source === "api"
     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
     : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
@@ -137,7 +137,10 @@ function EmployeesPage() {
             {dataSource}
           </span>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]">
+        <button
+          onClick={() => window.location.href = "/app/setup-wizard"}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-indigo-500 hover:to-violet-500 hover:shadow-md active:scale-[0.97]"
+        >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
@@ -270,7 +273,11 @@ function EmployeesPage() {
                 <button className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
                   Configure
                 </button>
-                <button className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 dark:hover:bg-indigo-950/50" title="Watch demo">
+                <button
+                  onClick={() => window.location.href = "/app/training"}
+                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/30 dark:text-indigo-400 dark:hover:bg-indigo-950/50"
+                  title="Watch training demo"
+                >
                   <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
