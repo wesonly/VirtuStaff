@@ -113,3 +113,176 @@ export const toggleEmployeeStatus = createServerFn({ method: "POST" }).handler(
     }
   },
 );
+
+// ─── Billing API ──────────────────────────────────────────────────────────────
+
+export interface BillingSubscription {
+  id: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  trialEnd: string | null;
+  canceledAt: string | null;
+  plan: {
+    id: string;
+    name: string;
+    slug: string;
+    priceCents: number;
+    maxAiEmployees: number;
+    features: string[];
+  } | null;
+  stripeStatus: string | null;
+  cancelAtPeriodEnd: boolean;
+  cancelAt: string | null;
+  paymentMethod: {
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+  } | null;
+  nextBillingAmount: number | null;
+}
+
+export interface PaymentHistoryItem {
+  id: string;
+  number: string;
+  amountPaid: number;
+  amountDue: number;
+  currency: string;
+  status: string;
+  invoicePdf: string | null;
+  hostedInvoiceUrl: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  created: string;
+  paid: boolean;
+  paymentIntentStatus: string | null;
+  cardBrand: string | null;
+  cardLast4: string | null;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  stripePriceId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  priceCents: number;
+  currency: string;
+  interval: string;
+  maxAiEmployees: number;
+  features: string[];
+  isActive: boolean;
+  createdAt: string;
+}
+
+/**
+ * Fetch billing subscription details from Stripe.
+ */
+export const fetchBillingSubscription = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<BillingSubscription>> => {
+  try {
+    const res = await fetch(`${API_BASE}/billing/subscription?orgId=${DEFAULT_ORG_ID}`);
+    if (res.ok) {
+      const json = await res.json();
+      return { data: json.data as BillingSubscription, error: null, source: "api" };
+    }
+    return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
+  } catch {
+    return { data: null, error: "Backend unreachable", source: "fallback" };
+  }
+});
+
+/**
+ * Fetch payment/invoice history from Stripe.
+ */
+export const fetchBillingPayments = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<PaymentHistoryItem[]>> => {
+  try {
+    const res = await fetch(`${API_BASE}/billing/payments?orgId=${DEFAULT_ORG_ID}&limit=12`);
+    if (res.ok) {
+      const json = await res.json();
+      return { data: json.data as PaymentHistoryItem[], error: null, source: "api" };
+    }
+    return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
+  } catch {
+    return { data: null, error: "Backend unreachable", source: "fallback" };
+  }
+});
+
+/**
+ * Create a Stripe Customer Portal session.
+ */
+export const createBillingPortal = createServerFn({ method: "POST" }).handler(async (): Promise<{ success: boolean; portalUrl?: string; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/billing/portal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgId: DEFAULT_ORG_ID }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: true, portalUrl: json.portalUrl };
+    }
+    const json = await res.json();
+    return { success: false, error: json.error?.message || `Backend returned ${res.status}` };
+  } catch {
+    return { success: false, error: "Backend unreachable" };
+  }
+});
+
+/**
+ * Cancel a subscription.
+ */
+export const cancelBillingSubscription = createServerFn({ method: "POST" }).handler(async ({ data }: { data: { immediate?: boolean } }): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/billing/cancel`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgId: DEFAULT_ORG_ID, immediate: data.immediate }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: json.success };
+    }
+    const json = await res.json();
+    return { success: false, error: json.error?.message || `Backend returned ${res.status}` };
+  } catch {
+    return { success: false, error: "Backend unreachable" };
+  }
+});
+
+/**
+ * Reactivate a subscription set to cancel at period end.
+ */
+export const reactivateBillingSubscription = createServerFn({ method: "POST" }).handler(async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/billing/reactivate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orgId: DEFAULT_ORG_ID }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return { success: json.success };
+    }
+    const json = await res.json();
+    return { success: false, error: json.error?.message || `Backend returned ${res.status}` };
+  } catch {
+    return { success: false, error: "Backend unreachable" };
+  }
+});
+
+/**
+ * Fetch available subscription plans from the DB.
+ */
+export const fetchSubscriptionPlans = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<SubscriptionPlan[]>> => {
+  try {
+    const res = await fetch(`${API_BASE}/plans`);
+    if (res.ok) {
+      const json = await res.json();
+      return { data: json.data as SubscriptionPlan[], error: null, source: "api" };
+    }
+    return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
+  } catch {
+    return { data: null, error: "Backend unreachable", source: "fallback" };
+  }
+});
