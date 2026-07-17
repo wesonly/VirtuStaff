@@ -1,10 +1,9 @@
 /**
  * VirtuStaff — Billing Module
  *
- * Stripe Customer Portal sessions, subscription details, and payment history.
- * Mounted at /api/v1/billing/*
+ * Endpoints for subscription management, invoices, payments, and Stripe Customer Portal.
+ * Uses the existing Stripe client and Neon DB subscription records.
  */
-
 import { Hono } from 'hono';
 import Stripe from 'stripe';
 import { db } from '../../db/client.js';
@@ -17,90 +16,38 @@ const stripe = stripeKey ? new Stripe(stripeKey, { apiVersion: '2024-04-10' }) :
 export const billingRouter = new Hono();
 
 /**
- * POST /billing/portal
- * Create a Stripe Customer Portal session and return the URL.
- * Body: { orgId: string, returnUrl?: string }
- */
-billingRouter.post('/billing/portal', async (c) => {
-  try {
-    if (!stripe) {
-      return c.json({ error: { code: 'stripe_not_configured', message: 'Stripe is not configured' } }, 500);
-    }
-
-    const { orgId, returnUrl } = await c.req.json();
-
-    if (!orgId) {
-      return c.json({ error: { code: 'missing_org_id', message: 'orgId is required' } }, 400);
-    }
-
-    // Look up the subscription and get the Stripe customer ID
-    const sub = await db
-      .select({
-        stripeCustomerId: subscriptions.stripeCustomerId,
-        status: subscriptions.status,
-      })
-      .from(subscriptions)
-      .where(eq(subscriptions.organizationId, orgId))
-      .limit(1);
-
-    if (!sub.length || !sub[0].stripeCustomerId) {
-      return c.json({
-        error: { code: 'no_customer', message: 'No Stripe customer found. Create a subscription first.' },
-      }, 404);
-    }
-
-    const session = await stripe.billingPortal.sessions.create({
-      customer: sub[0].stripeCustomerId,
-      return_url: returnUrl || `${c.req.header('origin') || 'https://be740fcb1111d6740ba7b0a41c2d3231.ctonew.app'}/app/billing`,
-    });
-
-    return c.json({
-      success: true,
-      portalUrl: session.url,
-      sessionId: session.id,
-    });
-  } catch (error) {
-    console.error('[BILLING PORTAL] Error:', error);
-    return c.json({
-      error: { code: 'portal_failed', message: error instanceof Error ? error.message : 'Failed to create portal session' },
-    }, 500);
-  }
-});
-
-/**
- * GET /billing/subscription?orgId=xxx
- * Fetch detailed subscription info from Stripe (via the Stripe subscription ID stored in our DB).
- * Returns: plan, status, current period, trial dates, cancel info, payment method info.
+ * GET /api/v1/billing/subscription
+ * Returns the current subscription details for the authenticated org.
+ * Merges Neon DB subscription record with live Stripe data.
  */
 billingRouter.get('/billing/subscription', async (c) => {
   try {
-    if (!stripe) {
-      return c.json({ error: { code: 'stripe_not_configured', message: 'Stripe is not configured' } }, 500);
-    }
-
-    const orgId = c.req.query('orgId');
+    const orgId = c.req.header('x-org-id');
     if (!orgId) {
-      return c.json({ error: { code: 'missing_org_id', message: 'orgId query parameter is required' } }, 400);
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
     }
 
-    // Get subscription from our DB
-    const dbSub = await db
+    const sub = await db
       .select({
         id: subscriptions.id,
+        planId: subscriptions.planId,
+        status: subscriptions.status,
         stripeSubscriptionId: subscriptions.stripeSubscriptionId,
         stripeCustomerId: subscriptions.stripeCustomerId,
-        status: subscriptions.status,
         currentPeriodStart: subscriptions.currentPeriodStart,
         currentPeriodEnd: subscriptions.currentPeriodEnd,
         trialEnd: subscriptions.trialEnd,
         canceledAt: subscriptions.canceledAt,
+        createdAt: subscriptions.createdAt,
         plan: {
-          id: subscriptionPlans.id,
           name: subscriptionPlans.name,
           slug: subscriptionPlans.slug,
           priceCents: subscriptionPlans.priceCents,
+          currency: subscriptionPlans.currency,
+          interval: subscriptionPlans.interval,
           maxAiEmployees: subscriptionPlans.maxAiEmployees,
           features: subscriptionPlans.features,
+          description: subscriptionPlans.description,
         },
       })
       .from(subscriptions)
@@ -108,218 +55,226 @@ billingRouter.get('/billing/subscription', async (c) => {
       .where(eq(subscriptions.organizationId, orgId))
       .limit(1);
 
-    if (!dbSub.length) {
-      return c.json({ data: null });
-    }
+    const localSub = sub[0] || null;
 
-    const sub = dbSub[0];
+    // Try to enrich with live Stripe data if we have a stripe subscription ID
     let stripeSub: Stripe.Subscription | null = null;
-    let paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null = null;
-    let upcomingInvoiceAmount: number | null = null;
-
-    // Fetch Stripe subscription details
-    if (sub.stripeSubscriptionId) {
+    if (stripe && localSub?.stripeSubscriptionId) {
       try {
-        stripeSub = await stripe.subscriptions.retrieve(sub.stripeSubscriptionId, {
-          expand: ['latest_invoice.payment_intent'],
-        });
+        stripeSub = await stripe.subscriptions.retrieve(localSub.stripeSubscriptionId);
       } catch {
-        // Subscription may not exist in Stripe (e.g., dev/test)
-      }
-    }
-
-    // Fetch payment method
-    if (sub.stripeCustomerId) {
-      try {
-        const pmList = await stripe.paymentMethods.list({
-          customer: sub.stripeCustomerId,
-          type: 'card',
-          limit: 1,
-        });
-        if (pmList.data.length > 0) {
-          const card = pmList.data[0].card;
-          if (card) {
-            paymentMethod = {
-              brand: card.brand,
-              last4: card.last4,
-              expMonth: card.exp_month,
-              expYear: card.exp_year,
-            };
-          }
-        }
-      } catch {
-        // Payment method fetch can fail silently
-      }
-
-      // Get upcoming invoice amount
-      try {
-        const upcoming = await stripe.invoices.retrieveUpcoming({
-          customer: sub.stripeCustomerId,
-        });
-        upcomingInvoiceAmount = upcoming.amount_due;
-      } catch {
-        // Not always possible (e.g., no upcoming invoice)
+        // Stripe fetch failed — return local data gracefully
       }
     }
 
     return c.json({
       data: {
-        id: sub.id,
-        status: sub.status,
-        currentPeriodStart: sub.currentPeriodStart,
-        currentPeriodEnd: sub.currentPeriodEnd,
-        trialEnd: sub.trialEnd,
-        canceledAt: sub.canceledAt,
-        plan: sub.plan,
-        stripeStatus: stripeSub?.status || null,
-        cancelAtPeriodEnd: stripeSub?.cancel_at_period_end || false,
-        cancelAt: stripeSub?.cancel_at ? new Date(stripeSub.cancel_at * 1000).toISOString() : null,
-        paymentMethod,
-        nextBillingAmount: upcomingInvoiceAmount,
+        ...localSub,
+        stripe: stripeSub
+          ? {
+              id: stripeSub.id,
+              status: stripeSub.status,
+              currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
+              currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+              trialEnd: stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null,
+              canceledAt: stripeSub.canceled_at ? new Date(stripeSub.canceled_at * 1000) : null,
+              cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+              defaultPaymentMethod: stripeSub.default_payment_method,
+            }
+          : null,
       },
     });
   } catch (error) {
-    console.error('[BILLING SUBSCRIPTION] Error:', error);
+    console.error('[BILLING] Error fetching subscription:', error);
     return c.json({
-      error: { code: 'fetch_failed', message: error instanceof Error ? error.message : 'Failed to fetch subscription' },
+      error: { code: 'fetch_failed', message: error instanceof Error ? error.message : 'Unknown error' },
     }, 500);
   }
 });
 
 /**
- * GET /billing/payments?orgId=xxx&limit=10
- * Fetch payment/invoice history from Stripe.
+ * GET /api/v1/billing/invoices
+ * Returns invoice history from Stripe for the org's customer.
  */
-billingRouter.get('/billing/payments', async (c) => {
+billingRouter.get('/billing/invoices', async (c) => {
   try {
-    if (!stripe) {
-      return c.json({ error: { code: 'stripe_not_configured', message: 'Stripe is not configured' } }, 500);
-    }
-
-    const orgId = c.req.query('orgId');
-    const limit = parseInt(c.req.query('limit') || '12', 10);
-
+    const orgId = c.req.header('x-org-id');
     if (!orgId) {
-      return c.json({ error: { code: 'missing_org_id', message: 'orgId query parameter is required' } }, 400);
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
     }
 
-    // Get Stripe customer ID from our DB
     const sub = await db
       .select({ stripeCustomerId: subscriptions.stripeCustomerId })
       .from(subscriptions)
       .where(eq(subscriptions.organizationId, orgId))
       .limit(1);
 
-    if (!sub.length || !sub[0].stripeCustomerId) {
-      return c.json({ data: [] });
+    const customerId = sub[0]?.stripeCustomerId;
+
+    if (!stripe || !customerId) {
+      return c.json({ data: [], meta: { total: 0 } });
     }
 
     const invoices = await stripe.invoices.list({
-      customer: sub[0].stripeCustomerId,
-      limit,
-      expand: ['data.payment_intent'],
+      customer: customerId,
+      limit: 24,
     });
 
-    const payments = invoices.data.map((inv) => {
-      const pi = inv.payment_intent as Stripe.PaymentIntent | null;
-      let cardBrand: string | null = null;
-      let cardLast4: string | null = null;
-
-      return {
+    return c.json({
+      data: invoices.data.map((inv) => ({
         id: inv.id,
         number: inv.number,
         amountPaid: inv.amount_paid,
         amountDue: inv.amount_due,
         currency: inv.currency,
         status: inv.status,
-        invoicePdf: inv.invoice_pdf,
-        hostedInvoiceUrl: inv.hosted_invoice_url,
-        periodStart: inv.period_start ? new Date(inv.period_start * 1000).toISOString() : null,
-        periodEnd: inv.period_end ? new Date(inv.period_end * 1000).toISOString() : null,
-        created: new Date(inv.created * 1000).toISOString(),
         paid: inv.paid,
-        paymentIntentStatus: pi?.status || null,
-        cardBrand,
-        cardLast4,
-      };
+        created: new Date(inv.created * 1000),
+        periodStart: new Date(inv.period_start * 1000),
+        periodEnd: new Date(inv.period_end * 1000),
+        hostedInvoiceUrl: inv.hosted_invoice_url,
+        pdfUrl: inv.invoice_pdf,
+        lines: inv.lines.data.map((line) => ({
+          description: line.description,
+          amount: line.amount,
+          period: line.period ? {
+            start: new Date(line.period.start * 1000),
+            end: new Date(line.period.end * 1000),
+          } : null,
+        })),
+      })),
+      meta: { total: invoices.data.length },
     });
-
-    return c.json({ data: payments });
   } catch (error) {
-    console.error('[BILLING PAYMENTS] Error:', error);
+    console.error('[BILLING] Error fetching invoices:', error);
     return c.json({
-      error: { code: 'fetch_failed', message: error instanceof Error ? error.message : 'Failed to fetch payments' },
+      error: { code: 'fetch_failed', message: error instanceof Error ? error.message : 'Unknown error' },
     }, 500);
   }
 });
 
 /**
- * POST /billing/cancel
- * Cancel a subscription at period end via Stripe.
- * Body: { orgId: string, immediate?: boolean }
+ * GET /api/v1/billing/payments
+ * Returns payment history from Stripe for the org's customer.
  */
-billingRouter.post('/billing/cancel', async (c) => {
+billingRouter.get('/billing/payments', async (c) => {
   try {
-    if (!stripe) {
-      return c.json({ error: { code: 'stripe_not_configured', message: 'Stripe is not configured' } }, 500);
-    }
-
-    const { orgId, immediate } = await c.req.json();
-
+    const orgId = c.req.header('x-org-id');
     if (!orgId) {
-      return c.json({ error: { code: 'missing_org_id', message: 'orgId is required' } }, 400);
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
     }
 
     const sub = await db
-      .select({
-        stripeSubscriptionId: subscriptions.stripeSubscriptionId,
-      })
+      .select({ stripeCustomerId: subscriptions.stripeCustomerId })
       .from(subscriptions)
       .where(eq(subscriptions.organizationId, orgId))
       .limit(1);
 
-    if (!sub.length || !sub[0].stripeSubscriptionId) {
-      return c.json({ error: { code: 'no_subscription', message: 'No active subscription found' } }, 404);
+    const customerId = sub[0]?.stripeCustomerId;
+
+    if (!stripe || !customerId) {
+      return c.json({ data: [], meta: { total: 0 } });
     }
 
-    if (immediate) {
-      await stripe.subscriptions.cancel(sub[0].stripeSubscriptionId);
-      await db.update(subscriptions).set({
-        status: 'canceled',
-        canceledAt: new Date(),
-      }).where(eq(subscriptions.organizationId, orgId));
-    } else {
-      // Cancel at period end
-      await stripe.subscriptions.update(sub[0].stripeSubscriptionId, {
-        cancel_at_period_end: true,
-      });
-      // Status will be updated when webhook fires customer.subscription.deleted
-    }
+    const paymentIntents = await stripe.paymentIntents.list({
+      customer: customerId,
+      limit: 24,
+    });
 
-    return c.json({ success: true, immediate: !!immediate });
-  } catch (error) {
-    console.error('[BILLING CANCEL] Error:', error);
     return c.json({
-      error: { code: 'cancel_failed', message: error instanceof Error ? error.message : 'Failed to cancel subscription' },
+      data: paymentIntents.data.map((pi) => ({
+        id: pi.id,
+        amount: pi.amount,
+        amountCapturable: pi.amount_capturable,
+        amountReceived: pi.amount_received,
+        currency: pi.currency,
+        status: pi.status,
+        created: new Date(pi.created * 1000),
+        description: pi.description,
+        paymentMethod: pi.payment_method_types,
+        invoiceId: pi.invoice,
+        receiptEmail: pi.receipt_email,
+      })),
+      meta: { total: paymentIntents.data.length },
+    });
+  } catch (error) {
+    console.error('[BILLING] Error fetching payments:', error);
+    return c.json({
+      error: { code: 'fetch_failed', message: error instanceof Error ? error.message : 'Unknown error' },
     }, 500);
   }
 });
 
 /**
- * POST /billing/reactivate
- * Reactivate a subscription set to cancel at period end.
- * Body: { orgId: string }
+ * POST /api/v1/billing/portal
+ * Creates a Stripe Customer Portal session and returns the URL.
  */
-billingRouter.post('/billing/reactivate', async (c) => {
+billingRouter.post('/billing/portal', async (c) => {
   try {
-    if (!stripe) {
-      return c.json({ error: { code: 'stripe_not_configured', message: 'Stripe is not configured' } }, 500);
+    const orgId = c.req.header('x-org-id');
+    if (!orgId) {
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
     }
 
-    const { orgId } = await c.req.json();
+    if (!stripe) {
+      return c.json({
+        error: { code: 'stripe_not_configured', message: 'Stripe is not configured' },
+      }, 500);
+    }
 
+    const sub = await db
+      .select({ stripeCustomerId: subscriptions.stripeCustomerId })
+      .from(subscriptions)
+      .where(eq(subscriptions.organizationId, orgId))
+      .limit(1);
+
+    let customerId = sub[0]?.stripeCustomerId;
+
+    // If no Stripe customer yet, create one
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        metadata: { orgId },
+      });
+      customerId = customer.id;
+      // Update the subscription record with the customer ID
+      await db
+        .update(subscriptions)
+        .set({ stripeCustomerId: customerId })
+        .where(eq(subscriptions.organizationId, orgId));
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: c.req.header('Referer') || 'https://be740fcb1111d6740ba7b0a41c2d3231.ctonew.app/app/billing',
+    });
+
+    return c.json({
+      success: true,
+      url: session.url,
+    });
+  } catch (error) {
+    console.error('[BILLING] Error creating portal session:', error);
+    return c.json({
+      error: { code: 'portal_failed', message: error instanceof Error ? error.message : 'Unknown error' },
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/v1/billing/cancel
+ * Cancels the subscription at the end of the current billing period.
+ */
+billingRouter.post('/billing/cancel', async (c) => {
+  try {
+    const orgId = c.req.header('x-org-id');
     if (!orgId) {
-      return c.json({ error: { code: 'missing_org_id', message: 'orgId is required' } }, 400);
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
+    }
+
+    if (!stripe) {
+      return c.json({
+        error: { code: 'stripe_not_configured', message: 'Stripe is not configured' },
+      }, 500);
     }
 
     const sub = await db
@@ -328,19 +283,133 @@ billingRouter.post('/billing/reactivate', async (c) => {
       .where(eq(subscriptions.organizationId, orgId))
       .limit(1);
 
-    if (!sub.length || !sub[0].stripeSubscriptionId) {
-      return c.json({ error: { code: 'no_subscription', message: 'No subscription found' } }, 404);
+    const stripeSubId = sub[0]?.stripeSubscriptionId;
+
+    if (!stripeSubId) {
+      return c.json({
+        error: { code: 'no_subscription', message: 'No active subscription found' },
+      }, 404);
     }
 
-    await stripe.subscriptions.update(sub[0].stripeSubscriptionId, {
-      cancel_at_period_end: false,
+    // Cancel at period end (don't immediately cancel)
+    const updatedSubscription = await stripe.subscriptions.update(stripeSubId, {
+      cancel_at_period_end: true,
     });
 
-    return c.json({ success: true });
-  } catch (error) {
-    console.error('[BILLING REACTIVATE] Error:', error);
+    // Update local DB
+    await db
+      .update(subscriptions)
+      .set({
+        status: 'canceled',
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.organizationId, orgId));
+
     return c.json({
-      error: { code: 'reactivate_failed', message: error instanceof Error ? error.message : 'Failed to reactivate subscription' },
+      success: true,
+      data: {
+        cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
+        currentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+      },
+    });
+  } catch (error) {
+    console.error('[BILLING] Error canceling subscription:', error);
+    return c.json({
+      error: { code: 'cancel_failed', message: error instanceof Error ? error.message : 'Unknown error' },
+    }, 500);
+  }
+});
+
+/**
+ * POST /api/v1/billing/change-plan
+ * Upgrades or downgrades to a different subscription plan.
+ */
+billingRouter.post('/billing/change-plan', async (c) => {
+  try {
+    const orgId = c.req.header('x-org-id');
+    if (!orgId) {
+      return c.json({ error: { code: 'missing_org', message: 'x-org-id header is required' } }, 400);
+    }
+
+    if (!stripe) {
+      return c.json({
+        error: { code: 'stripe_not_configured', message: 'Stripe is not configured' },
+      }, 500);
+    }
+
+    const body = await c.req.json();
+    const { planSlug } = body;
+
+    if (!planSlug) {
+      return c.json({
+        error: { code: 'missing_plan', message: 'planSlug is required' },
+      }, 400);
+    }
+
+    // Fetch the target plan from the DB
+    const targetPlan = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.slug, planSlug))
+      .limit(1);
+
+    if (!targetPlan.length) {
+      return c.json({
+        error: { code: 'invalid_plan', message: `Plan "${planSlug}" not found` },
+      }, 404);
+    }
+
+    const planRecord = targetPlan[0];
+
+    // Fetch the current subscription
+    const currentSub = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.organizationId, orgId))
+      .limit(1);
+
+    if (!currentSub.length) {
+      return c.json({
+        error: { code: 'no_subscription', message: 'No subscription found. Please subscribe first.' },
+      }, 404);
+    }
+
+    const subRecord = currentSub[0];
+
+    // If there's an active Stripe subscription, update it
+    if (subRecord.stripeSubscriptionId && planRecord.stripePriceId) {
+      await stripe.subscriptions.update(subRecord.stripeSubscriptionId, {
+        items: [{
+          id: (await stripe.subscriptions.retrieve(subRecord.stripeSubscriptionId)).items.data[0].id,
+          price: planRecord.stripePriceId,
+        }],
+        proration_behavior: 'create_prorations',
+      });
+    }
+
+    // Update the local DB record
+    await db
+      .update(subscriptions)
+      .set({
+        planId: planRecord.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(subscriptions.organizationId, orgId));
+
+    return c.json({
+      success: true,
+      data: {
+        planId: planRecord.id,
+        planName: planRecord.name,
+        planSlug: planRecord.slug,
+        priceCents: planRecord.priceCents,
+        maxAiEmployees: planRecord.maxAiEmployees,
+      },
+    });
+  } catch (error) {
+    console.error('[BILLING] Error changing plan:', error);
+    return c.json({
+      error: { code: 'change_plan_failed', message: error instanceof Error ? error.message : 'Unknown error' },
     }, 500);
   }
 });
