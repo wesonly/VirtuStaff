@@ -185,6 +185,38 @@ export const fetchBillingSubscription = createServerFn({ method: "GET" }).handle
     if (res.ok) {
       const json = await res.json();
       return { data: json.data as BillingSubscription, error: null, source: "api" };
+// ─── Settings / Organization API ──────────────────────────────────────────────
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  size: string;
+  timezone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrgMember {
+  id: string;
+  userId: string;
+  role: string;
+  joinedAt: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+/**
+ * Fetch organization details.
+ */
+export const fetchOrganization = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<Organization>> => {
+  try {
+    const res = await fetch(`${API_BASE}/orgs/${DEFAULT_ORG_ID}`);
+    if (res.ok) {
+      const json = await res.json();
+      return { data: json.data as Organization, error: null, source: "api" };
     }
     return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
   } catch {
@@ -221,6 +253,36 @@ export const createBillingPortal = createServerFn({ method: "POST" }).handler(as
     if (res.ok) {
       const json = await res.json();
       return { success: true, portalUrl: json.portalUrl };
+ * Update organization settings.
+ */
+export const updateOrganization = createServerFn({ method: "POST" }).handler(
+  async ({ data }: { data: Record<string, unknown> }): Promise<{ success: boolean; data?: Organization; error?: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/orgs/${DEFAULT_ORG_ID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return { success: true, data: json.data as Organization };
+      }
+      const json = await res.json();
+      return { success: false, error: json.error?.message || `Backend returned ${res.status}` };
+    } catch {
+      return { success: false, error: "Backend unreachable" };
+    }
+  },
+);
+
+/**
+ * Delete an organization and all its data.
+ */
+export const deleteOrganization = createServerFn({ method: "POST" }).handler(async (): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch(`${API_BASE}/orgs/${DEFAULT_ORG_ID}`, { method: "DELETE" });
+    if (res.ok) {
+      return { success: true };
     }
     const json = await res.json();
     return { success: false, error: json.error?.message || `Backend returned ${res.status}` };
@@ -280,6 +342,14 @@ export const fetchSubscriptionPlans = createServerFn({ method: "GET" }).handler(
     if (res.ok) {
       const json = await res.json();
       return { data: json.data as SubscriptionPlan[], error: null, source: "api" };
+ * Fetch organization members.
+ */
+export const fetchOrgMembers = createServerFn({ method: "GET" }).handler(async (): Promise<ApiResponse<OrgMember[]>> => {
+  try {
+    const res = await fetch(`${API_BASE}/orgs/${DEFAULT_ORG_ID}/members`);
+    if (res.ok) {
+      const json = await res.json();
+      return { data: json.data as OrgMember[], error: null, source: "api" };
     }
     return { data: null, error: `Backend returned ${res.status}`, source: "fallback" };
   } catch {
