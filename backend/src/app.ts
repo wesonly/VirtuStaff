@@ -17,6 +17,7 @@ import { employeeRouter } from './modules/employees/index.js';
 import { taskRouter } from './modules/tasks/index.js';
 import { workflowRouter } from './modules/workflows/index.js';
 import { subscriptionRouter } from './modules/subscriptions/index.js';
+import { billingRouter } from './modules/billing/index.js';
 import { crmRouter } from './modules/crm/index.js';
 import { authRouter } from './modules/auth/index.js';
 
@@ -43,6 +44,7 @@ app.route(`${API_PREFIX}`, employeeRouter);
 app.route(`${API_PREFIX}`, taskRouter);
 app.route(`${API_PREFIX}`, workflowRouter);
 app.route(`${API_PREFIX}`, subscriptionRouter);
+app.route(`${API_PREFIX}`, billingRouter);
 app.route(`${API_PREFIX}`, crmRouter);
 app.route(`${API_PREFIX}`, authRouter);
 
