@@ -19,6 +19,15 @@ aiRouter.post('/ai/test', async (c) => {
       return c.json({ error: { code: 'missing_message', message: 'message is required' } }, 400);
     }
 
+    // Check if Anthropic key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return c.json({
+        success: false,
+        error: 'ANTHROPIC_API_KEY not configured. AI features require a valid API key.',
+        hint: 'Set ANTHROPIC_API_KEY in your .env file or environment variables.',
+      }, 503);
+    }
+
     if (mode === 'task') {
       // Test with a simulated task
       const result = await executeTask({
@@ -40,12 +49,27 @@ aiRouter.post('/ai/test', async (c) => {
       systemPrompt: 'You are a helpful AI assistant for VirtuStaff, an AI workforce platform. Answer questions concisely and professionally.',
       message,
     });
-
     return c.json({ success: true, response });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    // Provide clearer error messages for common failures
+    if (message.includes('not_found_error') || message.includes('model')) {
+      return c.json({
+        success: false,
+        error: `AI model error: ${message}`,
+        hint: 'The model name may be incorrect or unavailable. Check model IDs at console.anthropic.com.',
+      }, 500);
+    }
+    if (message.includes('rate') || message.includes('quota') || message.includes('credit')) {
+      return c.json({
+        success: false,
+        error: `API rate limit or credits exhausted: ${message}`,
+        hint: 'Add credits at console.anthropic.com/settings/plans.',
+      }, 429);
+    }
     return c.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: message,
     }, 500);
   }
 });

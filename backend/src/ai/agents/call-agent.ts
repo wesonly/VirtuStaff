@@ -11,7 +11,7 @@ import type { AIExecutionResult } from '../runtime.js';
 import { executeTask } from '../runtime.js';
 
 const DEFAULT_CONFIG: AgentConfig = {
-  model: 'claude-sonnet-4-20250515',
+  model: 'claude-sonnet-4-5-20250929',
   systemPrompt: `You are a professional AI phone agent for a business. 
 Your role is to handle calls professionally, answer questions, 
 qualify leads, schedule appointments, and provide information.

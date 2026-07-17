@@ -16,19 +16,19 @@ export interface RoutingDecision {
 
 // Maps task types to the best Claude model for the job
 const MODEL_MAP: Record<string, string> = {
-  call: 'claude-sonnet-4-20250515',
-  email: 'claude-sonnet-4-20250515',
+  call: 'claude-sonnet-4-5-20250929',
+  email: 'claude-sonnet-4-5-20250929',
   sms: 'claude-3-5-haiku-20241022',
   lead_qualification: 'claude-3-5-haiku-20241022',
   qualification: 'claude-3-5-haiku-20241022',
-  chat: 'claude-sonnet-4-20250515',
-  scheduling: 'claude-sonnet-4-20250515',
-  appointment: 'claude-sonnet-4-20250515',
-  marketing: 'claude-sonnet-4-20250515',
-  content: 'claude-sonnet-4-20250515',
+  chat: 'claude-sonnet-4-5-20250929',
+  scheduling: 'claude-sonnet-4-5-20250929',
+  appointment: 'claude-sonnet-4-5-20250929',
+  marketing: 'claude-sonnet-4-5-20250929',
+  content: 'claude-sonnet-4-5-20250929',
   analysis: 'claude-3-5-haiku-20241022',
-  report: 'claude-sonnet-4-20250515',
-  default: 'claude-sonnet-4-20250515',
+  report: 'claude-sonnet-4-5-20250929',
+  default: 'claude-sonnet-4-5-20250929',
 };
 
 /**
