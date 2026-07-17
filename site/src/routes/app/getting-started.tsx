@@ -91,7 +91,13 @@ function StepCard({
           Done
         </span>
       ) : (
-        <button className="shrink-0 self-center inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-600 transition-all hover:bg-indigo-50 hover:border-indigo-300 dark:border-indigo-800 dark:bg-gray-800 dark:text-indigo-400 dark:hover:bg-indigo-950/50">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            window.location.href = "/app/training";
+          }}
+          className="shrink-0 self-center inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-600 transition-all hover:bg-indigo-50 hover:border-indigo-300 dark:border-indigo-800 dark:bg-gray-800 dark:text-indigo-400 dark:hover:bg-indigo-950/50"
+        >
           <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
